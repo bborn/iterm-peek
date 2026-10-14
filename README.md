@@ -1,8 +1,10 @@
 # iterm-peek
 
 Cmd-click a GitHub PR/issue link, a Linear issue link, or a bare Linear ID
-(`OL-1234`) in iTerm2 to see a small card next to the cursor: title, state,
+(`ENG-123`) in iTerm2 to see a small card next to the cursor: title, state,
 review and CI status for PRs, assignee and linked PRs for Linear issues.
+
+![A peek card for a merged GitHub pull request](docs/card.png)
 
 - Return, or clicking the title, opens the link. Cmd-clicking the same link again does the same.
 - Esc, or a click anywhere else, closes the card.
@@ -13,8 +15,13 @@ review and CI status for PRs, assignee and linked PRs for Linear issues.
 ## Install
 
     make install                       # builds, copies to ~/.local/bin, adds the rules
-    make install LINEAR_TEAMS=OL,ENG   # bare IDs for more Linear teams
+    make install LINEAR_TEAMS=ENG,OPS  # also peek bare IDs for these Linear teams
     make uninstall
+
+Bare IDs are off unless you list team keys, since a pattern like `ABC-123` also
+matches things like `UTF-8` and `SHA-256`. To keep your keys out of the command
+line, put `LINEAR_TEAMS = ENG,OPS` in a `config.mk` next to the Makefile
+(it's gitignored).
 
 The rules go on every profile except "Web Browser", via the iTerm2 Python API.
 GitHub data comes from `gh`. Linear needs `LINEAR_API_KEY`, which is read from

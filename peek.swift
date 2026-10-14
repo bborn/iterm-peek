@@ -481,7 +481,7 @@ final class Peek: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.setFrame(NSRect(x: x, y: top - size.height, width: size.width, height: size.height), display: true)
         if ProcessInfo.processInfo.environment["ITERM_PEEK_DEBUG"] != nil {
             let screenTop = NSScreen.screens[0].frame.maxY
-            print("frame \(Int(panel.frame.minX)),\(Int(screenTop - panel.frame.maxY)),\(Int(size.width)),\(Int(size.height)) key=\(panel.isKeyWindow)")
+            print("frame \(Int(panel.frame.minX)),\(Int(screenTop - panel.frame.maxY)),\(Int(size.width)),\(Int(size.height)) key=\(panel.isKeyWindow) wid=\(panel.windowNumber)")
             fflush(stdout)
         }
     }
@@ -522,8 +522,14 @@ final class Peek: NSObject, NSApplicationDelegate, NSWindowDelegate {
 var args = Array(CommandLine.arguments.dropFirst())
 let dump = args.first == "--dump"
 if dump { args.removeFirst() }
+var snapshotPath: String?
+if args.first == "--snapshot", args.count > 1 {
+    snapshotPath = args[1]
+    args.removeFirst(2)
+}
 guard let input = args.first else {
-    FileHandle.standardError.write("usage: iterm-peek [--dump] <github-or-linear-url-or-id>\n".data(using: .utf8)!)
+    FileHandle.standardError.write(
+        "usage: iterm-peek [--dump | --snapshot <out.png>] <github-or-linear-url-or-id>\n".data(using: .utf8)!)
     exit(64)
 }
 let inputURL = input.contains("://") ? URL(string: input) : nil
@@ -551,6 +557,35 @@ if dump {
         semaphore.signal()
     }
     semaphore.wait()
+    exit(0)
+}
+
+// Render the card offscreen to a PNG (used for the README screenshot).
+if let path = snapshotPath {
+    var result: Result<Card, Error>?
+    let semaphore = DispatchSemaphore(value: 0)
+    Task.detached {
+        do { result = .success(try await fetch(target)) } catch { result = .failure(error) }
+        semaphore.signal()
+    }
+    semaphore.wait()
+    MainActor.assumeIsolated {
+        let model = PeekModel(card: Card(kicker: "", title: ""))
+        model.loading = false
+        switch result! {
+        case let .success(card): model.card = card
+        case let .failure(error): model.error = error.localizedDescription
+        }
+        let view = CardView(model: model, open: {})
+            .background(Color(white: 0.16))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .environment(\.colorScheme, .dark)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2
+        guard let image = renderer.cgImage else { exit(1) }
+        let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])!
+        try! png.write(to: URL(fileURLWithPath: path))
+    }
     exit(0)
 }
 

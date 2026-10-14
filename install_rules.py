@@ -8,7 +8,7 @@ take over Cmd-click for GitHub PR/issue links, Linear issue links and bare Linea
 IDs. Every other link still opens normally. Rules are tagged by their notes, so
 running this again replaces them rather than adding duplicates.
 
-    uv run install_rules.py <peek-binary> <TEAM,KEYS>
+    uv run install_rules.py <peek-binary> [TEAM,KEYS]
     uv run install_rules.py --uninstall
 """
 
@@ -55,7 +55,7 @@ def peek_rules(binary, team_keys):
 
 async def main(connection):
     uninstall = sys.argv[1:2] == ["--uninstall"]
-    ours = [] if uninstall else peek_rules(sys.argv[1], [k for k in sys.argv[2].split(",") if k])
+    ours = [] if uninstall else peek_rules(sys.argv[1], [k for k in "".join(sys.argv[2:3]).split(",") if k])
     with open(DEFAULTS, "rb") as f:
         defaults = plistlib.load(f)["Rules"]
 

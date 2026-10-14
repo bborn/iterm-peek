@@ -1,6 +1,9 @@
 PREFIX ?= $(HOME)/.local
 BIN := $(PREFIX)/bin/iterm-peek
-LINEAR_TEAMS ?= OL
+# Linear team keys whose bare IDs (ENG-123) should peek, comma-separated.
+# Set it here or in a gitignored config.mk, e.g. LINEAR_TEAMS = ENG,OPS
+-include config.mk
+LINEAR_TEAMS ?=
 
 # Command Line Tools ships two modulemaps that both define SwiftBridging, which
 # breaks every swiftc build. Hide the duplicate with a VFS overlay instead of
@@ -28,7 +31,7 @@ build/overlay.yaml:
 install: build
 	@mkdir -p $(dir $(BIN))
 	install -m 755 build/iterm-peek $(BIN)
-	uv run install_rules.py $(BIN) $(LINEAR_TEAMS)
+	uv run install_rules.py $(BIN) "$(LINEAR_TEAMS)"
 
 uninstall:
 	uv run install_rules.py --uninstall
